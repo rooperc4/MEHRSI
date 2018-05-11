@@ -205,7 +205,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
 #          print(i)
           AIC[iter]<-2*fit[iter]+2*sum(form)
           form_next[iter,]<-form 
- print(AIC[1:20]) 
+ #print(AIC[1:20]) 
  #print(form_next[1:20,])
           
         }}
@@ -518,8 +518,7 @@ dist_xy<-function(lat1,long1,lat2,long2,unit){
 #' dist_xy()
 
 boot_survey_error<-function(best_model,boot_reps=500,year,variables,pred_pa=1,ob_CPUE,distribution="normal"){
-library(ggplot2)
-  
+
 yearn<-length(unlist(unique(year)))
 parameter_ests<-array(0,dim=c(boot_reps,(sum(best_model$best_model)+yearn)))
 likes_boot<-array(0,boot_reps)
@@ -537,10 +536,33 @@ for(i in 1:boot_reps){
   parameter_ests[i,]<-fit3$par
   likes_boot[i]<-fit3$value
   print(i)
-  print(date())
+#  print(date())
   flush.console()
 }
 
+return(list(likes_boot,parameter_ests))
+}
+
+
+#' Function to estimate annual index
+#'
+#' This function takes the best fitting model and resamples the data refitting and recomputing
+#' the indices to come up with a bootstrapped error estimate for the annual index value.
+#' @param parameter_ests Bootstrap estimates of parameters
+#' @param best_model for each variable, a form for the model equation (1, 2 or 3) 
+#' @param best_parameters  fitted values for each of the parameters 
+#' @param variables Set of habitat variables to use in the modeling
+#' @param ob_CPUE Observed CPUE at the transect
+#' @param pred_pa Predicted presence or absence at the transect
+#' @param year years of the survey
+#' @param minob 1/2 of the minimum CPUE observation for backtransformation of the data
+#' @keywords habitat model, survey abundance index
+#' @export
+#' @examples
+#' index_calc()
+
+index_calc<-function(parameter_ests,best_model,best_parameters,variables,year,minob){
+library(ggplot2)
 parameter_error<-parameter_ests
 year_cols<-sum(unlist(best_model$best_model))+1
 var2<-best_model$best_model
@@ -548,10 +570,10 @@ for(i in 1:dim(variables)[2]){
 var2[i]<- median(variables[[i]])}
 model_equation<-hab_equation(var2,unlist(best_model$best_model),unlist(best_model$best_parameters))
 overall_mean<-eval(parse(text = model_equation))
-index_est<-exp(best_parameters[year_cols:(year_cols+yearn-1)]+overall_mean)
-index_est_sd<-apply(exp(parameter_error[,year_cols:(year_cols+yearn-1)]),2,FUN=sd)
+index_est<-exp(best_parameters[year_cols:(year_cols+yearn-1)]+overall_mean)-minob
+index_est_sd<-apply(exp(parameter_error[,year_cols:(year_cols+yearn-1)]-minob),2,FUN=sd)
 index_est_cv<-100*index_est_sd/index_est
-index_table<-data.frame(Year=unlist(unique(yearu),use.names=FALSE),Index=index_est,SD=index_est_sd,CV=index_est_cv)
+index_table<-data.frame(Year=unlist(unique(year),use.names=FALSE),Index=index_est,SD=index_est_sd,CV=index_est_cv)
 index_table<-index_table[order(index_table$Year),]
 pander::pandoc.table(index_table,row.names=FALSE,digits=4)
 #PLOT OF INDEX
@@ -564,9 +586,62 @@ png(filename="IndexPlot.png",width=7,height=7,units="in",res=300)
 dev.off()
 
 
+return(index_table)
 
-write.csv(parameter_error,file="parameter_error.csv",row.names=FALSE)
-write.csv(data_out,file="data_out.csv",row.names=FALSE)
-write.csv(model$best_parameters,file="model_parameters.csv",row.names=FALSE)
-write.csv(model$best_model,file="model_bestmodel.csv",row.names=FALSE)
+}
+
+#' Function to spatial autocorrelation in residuals
+#'
+#' This function takes the best fitting model and resamples the data refitting and recomputing
+#' the indices to come up with a bootstrapped error estimate for the annual index value.
+#' @param longitude Longitude of haul
+#' @param latitude latitude of haul
+#' @param residuals  residuals of the best fitting model 
+#' @param pred_CPUE predicted CPUE of the best fitting model
+#' @param ob_CPUE Observed CPUE at the transect
+#' @param region either "GOA" (default) or "AI"
+#' @keywords habitat model, survey abundance index
+#' @export
+#' @examples
+#' spatial_resids()
+
+spatial_resids<-function(longitude,latitude,residuals,pred_CPUE,ob_CPUE,region="GOA"){					
+  library(spatial)
+  library(MASS)					
+  png(filename="spatial_resids.png",width=7,height=7,units="in",res=300)
+  par(mfrow=c(3,2))
+  dist1<-seq(0,10,.1)
+  dist2<-seq(0,40,1)
+  r_sq_spatial.kr<-array(0,dim=c(100,2))
+  range1<-.01
+  for(i in 1:100){
+    jpop.kr<-surf.gls(2,sphercov,longitude,latitude,residuals,r=dist1, d=range1)
+    jpop.kr.pred<-predict.trls(jpop.kr,longitude,latitude)
+    
+    jpop.pred<-jpop.kr.pred+pred_CPUE
+    r_sq_spatial.kr[i,1]<-range1
+    r_sq_spatial.kr[i,2]<-(cor(jpop.pred,ob_CPUE))^2
+    range1<-range1+.01
+  }
+  
+  range2i<-which.max(r_sq_spatial.kr[,2])
+  range2<-r_sq_spatial.kr[range2i,1]
+  jpop.kr<-surf.gls(2,sphercov,longitude,latitude,residuals,r=dist1, d=range2)
+  jpop.kr.pred<-predict.trls(jpop.kr,longitude,latitude)
+  jpop.pred<-jpop.kr.pred+pred_CPUE
+  r_sq_spatial<-(cor(jpop.pred,ob_CPUE))^2
+  trsurf <- trmat(jpop.kr,  -169, -133, 52, 61,5)
+  eqscplot(trsurf, type = "n")
+  contour(trsurf, add = TRUE)
+if(region=="GOA"){  prsurf <- prmat(jpop.kr, -169, -133, 52, 61, 5)}
+if(region=="AI"){  prsurf <- prmat(jpop.kr, -190, -165, 52, 61, 5)}
+  contour(prsurf, levels=seq(-1, 1, .1))
+  variogram(jpop.kr,100)
+  correlogram(jpop.kr,100)
+  lines(dist2,sphercov(dist2,range2))
+  plot(r_sq_spatial.kr[,1],r_sq_spatial.kr[,2])
+  plot(ob_CPUE,jpop.pred)
+  title(round(r_sq_spatial,3))
+  
+  dev.off()
 }
