@@ -556,19 +556,22 @@ return(list(likes_boot,parameter_ests))
 #' @param pred_pa Predicted presence or absence at the transect
 #' @param year years of the survey
 #' @param minob 1/2 of the minimum CPUE observation for backtransformation of the data
+#' @boot_reps number of bootstrap replicates
 #' @keywords habitat model, survey abundance index
 #' @export
 #' @examples
 #' index_calc()
 
-index_calc<-function(parameter_ests,best_model,best_parameters,variables,year,minob){
+index_calc<-function(parameter_ests,best_model,best_parameters,variables,year,minob,boot_reps){
 library(ggplot2)
 parameter_error<-parameter_ests
-year_cols<-sum(unlist(best_model$best_model))+1
-var2<-best_model$best_model
+year_cols<-sum(best_model)+1
+yearn<-length(unlist(unique(year)))
+var2<-array(dim=c(0,dim(variables)[2]))
+#var2<-best_model$best_model
 for(i in 1:dim(variables)[2]){
 var2[i]<- median(variables[[i]])}
-model_equation<-hab_equation(var2,unlist(best_model$best_model),unlist(best_model$best_parameters))
+model_equation<-hab_equation(var2,best_model,best_parameters)
 overall_mean<-eval(parse(text = model_equation))
 index_est<-exp(best_parameters[year_cols:(year_cols+yearn-1)]+overall_mean)-minob
 index_est_sd<-apply(exp(parameter_error[,year_cols:(year_cols+yearn-1)]-minob),2,FUN=sd)
@@ -582,7 +585,7 @@ p<-ggplot(index_table,aes(x=Year,y=Index))+geom_line()+geom_point()+
   geom_ribbon(aes(ymin=Index-SD*1.96/sqrt(boot_reps), ymax=Index+SD*1.96/sqrt(boot_reps)),
               alpha=0.2)
 png(filename="IndexPlot.png",width=7,height=7,units="in",res=300)
-    p
+    print(p)
 dev.off()
 
 
@@ -606,8 +609,14 @@ return(index_table)
 #' spatial_resids()
 
 spatial_resids<-function(longitude,latitude,residuals,pred_CPUE,ob_CPUE,region="GOA"){					
+#latitude<-Juvenile_POP_Data$lat
+#longitude<-Juvenile_POP_Data$long
+#residuals<-jpopdata_out$resids
+#pred_CPUE<-jpopdata_out$best_PCPUE
+#ob_CPUE<-ob_CPUE1
   library(spatial)
-  library(MASS)					
+  library(MASS)	
+ # spatial_data<-data.frame(x=longitude,y=latitude,z=residuals)
   png(filename="spatial_resids.png",width=7,height=7,units="in",res=300)
   par(mfrow=c(3,2))
   dist1<-seq(0,10,.1)
@@ -615,7 +624,7 @@ spatial_resids<-function(longitude,latitude,residuals,pred_CPUE,ob_CPUE,region="
   r_sq_spatial.kr<-array(0,dim=c(100,2))
   range1<-.01
   for(i in 1:100){
-    jpop.kr<-surf.gls(2,sphercov,longitude,latitude,residuals,r=dist1, d=range1)
+    jpop.kr<-surf.gls(2,sphercov,x=longitude,y=latitude,z=residuals,r=dist1, d=range1)
     jpop.kr.pred<-predict.trls(jpop.kr,longitude,latitude)
     
     jpop.pred<-jpop.kr.pred+pred_CPUE
@@ -626,7 +635,7 @@ spatial_resids<-function(longitude,latitude,residuals,pred_CPUE,ob_CPUE,region="
   
   range2i<-which.max(r_sq_spatial.kr[,2])
   range2<-r_sq_spatial.kr[range2i,1]
-  jpop.kr<-surf.gls(2,sphercov,longitude,latitude,residuals,r=dist1, d=range2)
+  jpop.kr<-surf.gls(2,sphercov,x=longitude,y=latitude,z=residuals,r=dist1, d=range2)
   jpop.kr.pred<-predict.trls(jpop.kr,longitude,latitude)
   jpop.pred<-jpop.kr.pred+pred_CPUE
   r_sq_spatial<-(cor(jpop.pred,ob_CPUE))^2
