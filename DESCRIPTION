@@ -1,9 +1,22 @@
 Package: MEHRSI
-Title: What the Package Does (one line, title case)
+Title: Habitat Model Estimates of Survey Abundances
 Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-Depends: R (>= 3.5.0)
+Authors@R: person("Rooper", "Chris", email = "chris.rooper@noaa.gov", role = c("aut", "cre"))
+Description: The purpose of this package and its associated functions is to allow the user to 
+    compute annual indices of abundance from survey data using a habitat model based on Rooper 
+    and Martin (2012). It is designed to be a 2-stage model, with the first stage setting the 
+    biological limits for a species (such as depth ranges from 85-250 m for Pacific Ocean perch 
+    or geographical limits on Northern rockfish distribution). In the second stage a iterative 
+    modeling process fits CPUE data to habitat variables chosen by the user. Individual habitat 
+    variables are constrained to using one of 3 shapes for the fitting (dome, asymptotic or 
+    linear). Model fitting is completed using the optim function in R and parameters and variables 
+    are removed sequentially until there is no improvement in model AIC. Full details of the 
+    modeling and the manuscript can be found at https://www.st.nmfs.noaa.gov/spo/FishBull/1101/rooper.pdf 
+    and the preceeding papers where the method was developed (Rooper and Martin 2009 - 
+    http://www.int-res.com/articles/meps2009/379/m379p253.pdf, Rooper 2008 - 
+    http://fishbull.noaa.gov/1061/rooper.pdf, and Rooper and Zimmermann 2005 - 
+    http://www.int-res.com/articles/meps2005/290/m290p251.pdf).
+Depends: R (>= 3.1.0)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
