@@ -118,10 +118,10 @@ head(jpopdata_out)
 ```
 
 ```{r, echo=FALSE}
-knitr::include_graphics("Raw_data.PNG")
-knitr::include_graphics("VariableRelationships.PNG")
-knitr::include_graphics("ObservedPredicted.PNG")
-knitr::include_graphics("QQplot.PNG")
+knitr::include_graphics("Raw_data.png")
+knitr::include_graphics("VariableRelationships.png")
+knitr::include_graphics("ObservedPredicted.png")
+knitr::include_graphics("QQplot.png")
 ```
 
 Next we bootstrap some errors by resampling the data to produce the index and associated variability. 
@@ -138,7 +138,7 @@ Finally, we take all the pieces and put them together to calculate the index of 
 JpopIndex<-index_calc(index_error[[2]],jpopmodel[["best_model"]],jpopmodel[["best_parameters"]],Juvenile_POP_Data[,(var1)],year1,minob,boot1)
 ```
 ```{r, echo=FALSE}
-knitr::include_graphics("IndexPlot.PNG")
+knitr::include_graphics("IndexPlot.png")
 ```
 
 Look for any significant spatial patterns in the residuals, by fitting a kriging model and adding back into the predicted CPUE
@@ -149,5 +149,5 @@ spatial_resids(Juvenile_POP_Data$long,Juvenile_POP_Data$lat,jpopdata_out$resids,
 ```
 
 ```{r, echo=FALSE,fig.showtext=FALSE, fig.cap="Spatial patterns and correlations among residuals"}
-knitr::include_graphics("spatial_resids.PNG")
+knitr::include_graphics("spatial_resids.png")
 ```
