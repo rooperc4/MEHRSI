@@ -152,12 +152,12 @@ return(lik_sum)}
 iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="normal"){
 
   #for testing
-  #variables<-Juvenile_POP_Data[,(var1)]
-  #form<-forms1
-  #ob_CPUE<-ob_CPUE1
-  #pred_pa<-pred_pa1
-  #par<-par1
-  #year<-year1
+#  variables<-AI_data[,(var1)]
+#  form<-forms1
+#  ob_CPUE<-ob_CPUE1
+#  pred_pa<-pred_pa1
+#  par<-par1
+#  year<-year1
 #CPUE data plotted against habitat variables 
   png(filename="Raw_data.png",width=7,height=7,res=300,units="in") 
   par(mfrow=c(ceiling(length(variables)/3),3)) 
@@ -182,8 +182,8 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     #run full model at beginning of each round
    par<-rep(0,(sum(form)+yearn))
 #    fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=12, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
-    fit1<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
-    fit[iter]<-fit1$value
+    fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+    fit[iter]<-fit1$objective
 #print(fit[iter])    
     AIC[iter]<-2*fit[iter]+2*sum(form)
     AICf<-2*fit[iter]+2*sum(form)
@@ -199,20 +199,22 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
           form[n]<-form[n]-1
           par<-rep(0,(sum(form)+yearn))
           iter<-iter+1
-#          fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
-          fit1<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
-          fit[iter]<-fit1$value
-#          print(i)
+        fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal")
+#          print(i) 
+        #fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
+        #  fit1<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
+          fit[iter]<-fit1$objective
+          
           AIC[iter]<-2*fit[iter]+2*sum(form)
           form_next[iter,]<-form 
- #print(AIC[1:20]) 
- #print(form_next[1:20,])
+ print(AIC[1:20]) 
+ print(form_next[1:20,])
           
         }}
       form[n]<-form[n]+nadd
       n<-n+1
       
- #     print(k)
+      print(k)
    #   browser()
     }
     
@@ -234,8 +236,8 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
   best_AIC<-AIC[AICm]
   best_model<-form_next[AICm,]
 #  fit2<-nlm(modlike,par,best_model,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000)
-  fit2<-optim(par,modlike,gr=NULL,best_model,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
-  best_loglik<-fit2$value
+  fit2<-nlminb(par,modlike,gradient=NULL,hessian=NULL,best_model,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+  best_loglik<-fit2$objective
   best_parameters<-fit2$par
   best_PCPUE<-HabModel(variables,best_model,best_parameters,pred_pa,year)
   resids<-ob_CPUE-best_PCPUE
@@ -293,7 +295,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     tabledata<-array(dim=c(2,5))
     colnames(tabledata)<-c("Model","Number of parameters","AIC","R2","Contribution")
     par<-rep(0,(sum(form)+yearn))
-    fitf<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
+    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
     tabledata[1,1]<-"Full model"
     tabledata[1,2]<-sum(form)
     tabledata[1,3]<-AIC[1]
@@ -314,12 +316,12 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     formt<-form1
     formt[i]<-0
     par<-rep(0,(sum(formt)+yearn))
-    fitf<-optim(par,modlike,gr=NULL,formt,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
+    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,formt,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
     contribf[i,2]<-sum(formt)
-    contribf[i,3]<-2*fitf$value+2*sum(formt)
+    contribf[i,3]<-2*fitf$objective+2*sum(formt)
     part_PCPUE<-HabModel(variables,formt,fitf$par,pred_pa,year)
     contribf[i,4]<-cor(ob_CPUE,part_PCPUE)^2
-    contribf[i,5]<-1-best_loglik/fitf$value}
+    contribf[i,5]<-1-best_loglik/fitf$objective}
     contribf<-contribf[form1!=0,]
     contribf<-contribf[order(contribf[,5],decreasing=TRUE),]
     contribf[,5]<-as.numeric(contribf[,5])/max(as.numeric(contribf[,5]))
