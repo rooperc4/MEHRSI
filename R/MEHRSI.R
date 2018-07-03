@@ -533,10 +533,11 @@ for(i in 1:boot_reps){
   ob_CPUEu<-ob_CPUE[bootdata]
   formu<-best_model$best_model
   pred_pau<-pred_pa[bootdata]
-  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
+#  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
+  fit3<-nlminb(par1,modlike,gradient=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",control=list(trace=1))
   best_parameters<-fit3$par
   parameter_ests[i,]<-fit3$par
-  likes_boot[i]<-fit3$value
+  likes_boot[i]<-fit3$objective
   print(i)
 #  print(date())
   flush.console()
