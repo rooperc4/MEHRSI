@@ -534,7 +534,7 @@ for(i in 1:boot_reps){
   formu<-best_model$best_model
   pred_pau<-pred_pa[bootdata]
 #  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
-  fit3<-nlminb(par1,modlike,gradient=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",control=list(trace=1))
+  fit3<-nlminb(par1,modlike,gradient=NULL,hessian=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",control=list(trace=1))
   best_parameters<-fit3$par
   parameter_ests[i,]<-fit3$par
   likes_boot[i]<-fit3$objective
@@ -577,7 +577,7 @@ var2[i]<- median(variables[[i]])}
 model_equation<-hab_equation(var2,best_model,best_parameters)
 overall_mean<-eval(parse(text = model_equation))
 index_est<-exp(best_parameters[year_cols:(year_cols+yearn-1)]+overall_mean)-minob
-index_est_sd<-apply(exp(parameter_error[,year_cols:(year_cols+yearn-1)]-minob),2,FUN=sd)
+index_est_sd<-apply(exp(parameter_error[,year_cols:(year_cols+yearn-1)]+overall_mean)-minob,2,FUN=sd)
 index_est_cv<-100*index_est_sd/index_est
 index_table<-data.frame(Year=unlist(unique(year),use.names=FALSE),Index=index_est,SD=index_est_sd,CV=index_est_cv)
 index_table<-index_table[order(index_table$Year),]
