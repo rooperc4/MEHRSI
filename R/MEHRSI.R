@@ -182,7 +182,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     #run full model at beginning of each round
    par<-rep(0,(sum(form)+yearn))
 #    fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=12, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
-    fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+    fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
     fit[iter]<-fit1$objective
 #print(fit[iter])    
     AIC[iter]<-2*fit[iter]+2*sum(form)
@@ -199,7 +199,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
           form[n]<-form[n]-1
           par<-rep(0,(sum(form)+yearn))
           iter<-iter+1
-        fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal")
+        fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa,year,distribution)
 #          print(i) 
         #fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
         #  fit1<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
@@ -236,7 +236,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
   best_AIC<-AIC[AICm]
   best_model<-form_next[AICm,]
 #  fit2<-nlm(modlike,par,best_model,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000)
-  fit2<-nlminb(par,modlike,gradient=NULL,hessian=NULL,best_model,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+  fit2<-nlminb(par,modlike,gradient=NULL,hessian=NULL,best_model,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
   best_loglik<-fit2$objective
   best_parameters<-fit2$par
   best_PCPUE<-HabModel(variables,best_model,best_parameters,pred_pa,year)
@@ -295,7 +295,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     tabledata<-array(dim=c(2,5))
     colnames(tabledata)<-c("Model","Number of parameters","AIC","R2","Contribution")
     par<-rep(0,(sum(form)+yearn))
-    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
     tabledata[1,1]<-"Full model"
     tabledata[1,2]<-sum(form)
     tabledata[1,3]<-AIC[1]
@@ -316,7 +316,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     formt<-form1
     formt[i]<-0
     par<-rep(0,(sum(formt)+yearn))
-    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,formt,variables,ob_CPUE,pred_pa=1,year,distribution="normal",control=list(trace=1))
+    fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,formt,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
     contribf[i,2]<-sum(formt)
     contribf[i,3]<-2*fitf$objective+2*sum(formt)
     part_PCPUE<-HabModel(variables,formt,fitf$par,pred_pa,year)
@@ -328,7 +328,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     tabledata<-rbind(tabledata,contribf)
     pander::pandoc.table(tabledata)
     
-  return(list(form_hist=form_hist,best_fit=best_fit,best_AIC=best_AIC,best_loglik=best_loglik,r_squared=r_squared,best_parameters=best_parameters,best_model=best_model,best_PCPUE=best_PCPUE,resids=resids))
+  return(list(form_hist=form_hist,best_AIC=best_AIC,best_loglik=best_loglik,r_squared=r_squared,best_parameters=best_parameters,best_model=best_model,best_PCPUE=best_PCPUE,resids=resids))
 }
 
 #' This function calculates cdf of CPUE for predicting presence or absence in a habitat model
@@ -534,7 +534,8 @@ for(i in 1:boot_reps){
   formu<-best_model$best_model
   pred_pau<-pred_pa[bootdata]
 #  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
-  fit3<-nlminb(par1,modlike,gradient=NULL,hessian=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",control=list(trace=1))
+  fit3<-nlminb(par1,modlike,gradient=NULL,hessian=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution,control=list(trace=1))
+  
   best_parameters<-fit3$par
   parameter_ests[i,]<-fit3$par
   likes_boot[i]<-fit3$objective
