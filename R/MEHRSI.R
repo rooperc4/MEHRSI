@@ -522,20 +522,35 @@ dist_xy<-function(lat1,long1,lat2,long2,unit){
 
 boot_survey_error<-function(best_model,boot_reps=500,year,variables,pred_pa=1,ob_CPUE,distribution="normal"){
 
-yearn<-length(unlist(unique(year)))
+#yearn<-length(unlist(unique(year)))
+yearn<-length(unlist(unique(year1)))
 parameter_ests<-array(0,dim=c(boot_reps,(sum(best_model$best_model)+yearn)))
 likes_boot<-array(0,boot_reps)
 
 for(i in 1:boot_reps){	
-  bootdata<- sample(1:length(pred_pa), replace=TRUE)
+  bootdata<- sample(length(pred_pa1), replace=TRUE)
+  #bootdata<-seq(1,length(pred_pa1),1)
+  #bootdata<- sample(length(pred_pa), replace=TRUE)
+  #bootdata1<-cbind(AI_data[,(var1)],year1,pred_pa1,ob_CPUE1)
+  #variablesu<-AI_data[,(var1)]
+  #yearu<-year1
+  #pred_pau<-pred_pa1
+ # ob_CPUEu<-ob_CPUE1
   bootdata1<-cbind(variables,year,pred_pa,ob_CPUE)
   bootdata1<-bootdata1[order(bootdata1[,"year"]),]
   par1<-rep(0,(sum(best_model$best_model)+yearn))
-  yearu<-data.frame(year=bootdata1[,"year"])
-  variablesu<-bootdata1[,colnames(variables)]
-  ob_CPUEu<-bootdata1[,"ob_CPUE"]
+#  par1<-rep(0,(sum(POPmodel$best_model)+yearn))
+  yearu<-data.frame(bootdata1[bootdata,"year"])
+  #yearu<-data.frame(year=bootdata1[bootdata,"year"])
+  variablesu<-bootdata1[bootdata,colnames(variables)]
+ # variablesu<-bootdata1[bootdata,(var1)]  
+#  ob_CPUEu<-bootdata1[bootdata,"ob_CPUE1"]
+  ob_CPUEu<-bootdata1[bootdata,"ob_CPUE"]
   formu<-best_model$best_model
-  pred_pau<-bootdata1[,pred_pa]
+ # formu<-POPmodel$best_model
+  pred_pau<-bootdata1[bootdata,"pred_pa"]
+#  pred_pau<-unlist(bootdata1[bootdata,"pred_pa1"])
+  
 #  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
   fit3<-nlminb(par1,modlike,gradient=NULL,hessian=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution,control=list(trace=1))
   best_parameters<-fit3$par
