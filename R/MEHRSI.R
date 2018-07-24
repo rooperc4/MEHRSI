@@ -59,11 +59,12 @@ hab_equation<-function(variables,form,par)
 #' @examples
 #' HabModel()
 
-HabModel<-function(variables, form, par,pred_pa=1,year)
+HabModel<-function(variables, form, par,ob_CPUE,pred_pa,year)
 {
   equation1<-hab_equation(variables,form,par)
   
   PCPUE<-(eval(parse(text = equation1))+yearp(year,par,form))*pred_pa
+  PCPUE[pred_pa==0]<-min(ob_CPUE)
   
   return(PCPUE)
   
@@ -110,17 +111,17 @@ yearp<-function(year,par,form){
 #' @examples
 #' modlike()
 
-modlike<-function(par, form, variables,ob_CPUE,pred_pa=1,year,distribution="normal")
+modlike<-function(par, form, variables,ob_CPUE,pred_pa,year,distribution="normal")
 {
  if(distribution=="normal"){
-   PCPUE<-HabModel(variables,form,par,pred_pa,year)
+   PCPUE<-HabModel(variables,form,par,ob_CPUE,pred_pa,year)
   sigma<-sd(ob_CPUE)
   likj<-ob_CPUE
   likj<-log(sigma)+0.5*log(2*3.141593)+(ob_CPUE-PCPUE)^2/(2*sigma^2)
   lik_sum=sum(likj)
   return(lik_sum)}
  if(distribution=="gamma"){
-   PCPUE<-HabModel(variables,form,par,pred_pa,year)
+   PCPUE<-HabModel(variables,form,par,ob_CPUE,pred_pa,year)
 	gresid<-(ob_CPUE1-unlist(PCPUE))^2
 lik_sum<--sum(dgamma(unlist(gresid),1, 1, log = TRUE))
 return(lik_sum)}
@@ -199,7 +200,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
           form[n]<-form[n]-1
           par<-rep(0,(sum(form)+yearn))
           iter<-iter+1
-        fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa,year,distribution)
+        fit1<-nlminb(par,modlike,gradient=NULL,hessian=NULL,form,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
 #          print(i) 
         #fit1<-nlm(modlike,par,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",ndigit=100, gradtol=.0000015, stepmax=3, steptol=.000001, iterlim=1000,print.level=2,hessian=TRUE)
         #  fit1<-optim(par,modlike,gr=NULL,form,variables,ob_CPUE,pred_pa=1,year,distribution="normal",method="BFGS",control=list(trace=1))
@@ -207,8 +208,8 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
           
           AIC[iter]<-2*fit[iter]+2*sum(form)
           form_next[iter,]<-form 
- print(AIC[1:20]) 
- print(form_next[1:20,])
+ print(AIC[iter]) 
+ print(form_next[iter,])
           
         }}
       form[n]<-form[n]+nadd
@@ -224,7 +225,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     #use best AIC to determine the full model for the next round
     form<-form_next[AICm,]
     iter<-iter+1
-    print(form)
+   # print(form)
   #  print(date())
     flush.console()
   }
@@ -239,7 +240,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
   fit2<-nlminb(par,modlike,gradient=NULL,hessian=NULL,best_model,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
   best_loglik<-fit2$objective
   best_parameters<-fit2$par
-  best_PCPUE<-HabModel(variables,best_model,best_parameters,pred_pa,year)
+  best_PCPUE<-HabModel(variables,best_model,best_parameters,ob_CPUE,pred_pa,year)
   resids<-ob_CPUE-best_PCPUE
   r_squared<-cor(ob_CPUE,best_PCPUE)^2
   
@@ -299,7 +300,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     tabledata[1,1]<-"Full model"
     tabledata[1,2]<-sum(form)
     tabledata[1,3]<-AIC[1]
-    full_PCPUE<-HabModel(variables,form,fitf$par,pred_pa,year)
+    full_PCPUE<-HabModel(variables,form,fitf$par,ob_CPUE,pred_pa,year)
     tabledata[1,4]<-cor(ob_CPUE,full_PCPUE)^2
     tabledata[1,5]<-"--"
     
@@ -319,7 +320,7 @@ iteration<-function(variables,form,ob_CPUE,pred_pa=1,par,year,distribution="norm
     fitf<-nlminb(par,modlike,gradient=NULL,hessian=NULL,formt,variables,ob_CPUE,pred_pa,year,distribution,control=list(trace=1))
     contribf[i,2]<-sum(formt)
     contribf[i,3]<-2*fitf$objective+2*sum(formt)
-    part_PCPUE<-HabModel(variables,formt,fitf$par,pred_pa,year)
+    part_PCPUE<-HabModel(variables,formt,fitf$par,ob_CPUE,pred_pa,year)
     contribf[i,4]<-cor(ob_CPUE,part_PCPUE)^2
     contribf[i,5]<-1-best_loglik/fitf$objective}
     contribf<-contribf[form1!=0,]
@@ -527,15 +528,16 @@ likes_boot<-array(0,boot_reps)
 
 for(i in 1:boot_reps){	
   bootdata<- sample(1:length(pred_pa), replace=TRUE)
+  bootdata1<-cbind(variables,year,pred_pa,ob_CPUE)
+  bootdata1<-bootdata1[order(bootdata1[,"year"]),]
   par1<-rep(0,(sum(best_model$best_model)+yearn))
-  yearu<-data.frame(year=year[bootdata,])
-  variablesu<-variables[bootdata,]
-  ob_CPUEu<-ob_CPUE[bootdata]
+  yearu<-data.frame(year=bootdata1[,"year"])
+  variablesu<-bootdata1[,colnames(variables)]
+  ob_CPUEu<-bootdata1[,"ob_CPUE"]
   formu<-best_model$best_model
-  pred_pau<-pred_pa[bootdata]
+  pred_pau<-bootdata1[,pred_pa]
 #  fit3<-optim(par1,modlike,gr=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution="normal",method="BFGS",control=list(trace=1))
   fit3<-nlminb(par1,modlike,gradient=NULL,hessian=NULL,formu,variablesu,ob_CPUEu,pred_pau,yearu,distribution,control=list(trace=1))
-  
   best_parameters<-fit3$par
   parameter_ests[i,]<-fit3$par
   likes_boot[i]<-fit3$objective
